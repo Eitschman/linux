@@ -39,6 +39,12 @@ jobs:
           CROSS_COMPILE: arm-linux-gnueabi-
         run: |
           make gemini_defconfig
+          ./scripts/config \
+            --enable CONFIG_MODULES \
+            --enable CONFIG_MODULE_UNLOAD \
+            --enable CONFIG_NET_VENDOR_CORTINA \
+            --module CONFIG_GEMINI_ETHERNET
+          make olddefconfig
 
       - name: Prepare kernel build system (scripts + module headers)
         env:
