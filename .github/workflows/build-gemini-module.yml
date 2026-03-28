@@ -1,0 +1,64 @@
+name: Build Gemini Ethernet Module
+
+on:
+  push:
+    branches:
+      - fix/gemini-skb-leak
+    paths:
+      - 'drivers/net/ethernet/cortina/**'
+      - '.github/workflows/build-gemini-module.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build gemini.ko (ARM FA526 / ARM926EJ-S)
+
+    steps:
+      - name: Checkout kernel source
+        uses: actions/checkout@v4
+        with:
+          depth: 1
+
+      - name: Install ARM cross-compiler and build dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            gcc-arm-linux-gnueabi \
+            binutils-arm-linux-gnueabi \
+            bc \
+            libelf-dev \
+            bison \
+            flex \
+            libssl-dev \
+            make
+
+      - name: Configure kernel for Gemini platform (arm_fa526 / ARM926EJ-S)
+        env:
+          ARCH: arm
+          CROSS_COMPILE: arm-linux-gnueabi-
+        run: |
+          make gemini_defconfig
+
+      - name: Prepare kernel build system (scripts + module headers)
+        env:
+          ARCH: arm
+          CROSS_COMPILE: arm-linux-gnueabi-
+        run: |
+          make scripts prepare modules_prepare -j$(nproc)
+
+      - name: Build gemini.ko module only
+        env:
+          ARCH: arm
+          CROSS_COMPILE: arm-linux-gnueabi-
+        run: |
+          make M=drivers/net/ethernet/cortina modules -j$(nproc)
+          arm-linux-gnueabi-readelf -h drivers/net/ethernet/cortina/gemini.ko \
+            | grep -E "Machine|Flags"
+
+      - name: Upload gemini.ko as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gemini-ko-arm-fa526-${{ github.sha }}
+          path: drivers/net/ethernet/cortina/gemini.ko
+          if-no-files-found: error
