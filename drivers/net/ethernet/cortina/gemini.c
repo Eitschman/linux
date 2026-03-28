@@ -785,6 +785,11 @@ static void gmac_cleanup_rxq(struct net_device *netdev)
 		gpage = gmac_get_queue_page(geth, port, mapping + PAGE_SIZE);
 		if (!gpage) {
 			dev_err(geth->dev, "could not find page\n");
+			if (skb) {
+				napi_free_frags(&port->napi);
+				skb = NULL;
+			}
+			port->stats.rx_dropped++;
 			continue;
 		}
 		/* Release the RX queue reference to the page */
@@ -1491,6 +1496,11 @@ static unsigned int gmac_rx(struct net_device *netdev, unsigned int budget)
 		gpage = gmac_get_queue_page(geth, port, mapping + PAGE_SIZE);
 		if (!gpage) {
 			dev_err(geth->dev, "could not find mapping\n");
+			if (skb) {
+				napi_free_frags(&port->napi);
+				skb = NULL;
+			}
+			port->stats.rx_dropped++;
 			continue;
 		}
 		page = gpage->page;
