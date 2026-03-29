@@ -58,7 +58,10 @@ jobs:
           ARCH: arm
           CROSS_COMPILE: arm-linux-gnueabi-
         run: |
-          make M=drivers/net/ethernet/cortina modules -j$(nproc)
+          # KBUILD_MODPOST_WARN=1: Module.symvers is absent because we skip
+          # a full kernel build. Unresolved symbols at modpost are expected —
+          # they exist in the running target kernel and are resolved at insmod.
+          make KBUILD_MODPOST_WARN=1 M=drivers/net/ethernet/cortina modules -j$(nproc)
           arm-linux-gnueabi-readelf -h drivers/net/ethernet/cortina/gemini.ko \
             | grep -E "Machine|Flags"
 
